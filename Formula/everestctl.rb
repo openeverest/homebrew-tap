@@ -2,25 +2,25 @@ class Everestctl < Formula
   desc "CLI tool for provisioning and managing OpenEverest on Kubernetes"
   homepage "https://github.com/openeverest/openeverest"
   license "Apache-2.0"
-  version "1.13.0"
+  version "1.12.0"
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/openeverest/openeverest/releases/download/v1.13.0/everestctl-darwin-amd64"
-      sha256 "b1340ad8c1cb67c8cb570943511b3740dc3b5d231510205331ef4d32c990f477"
+      url "https://github.com/openeverest/openeverest/releases/download/v1.12.0/everestctl-darwin-amd64"
+      sha256 "697a2059ca095458cce9624fbe668976596a5576ab86d36825d292cba057ba0e"
     elsif Hardware::CPU.arm?
-      url "https://github.com/openeverest/openeverest/releases/download/v1.13.0/everestctl-darwin-arm64"
-      sha256 "e62b6975ca1e5e5cf24053c73e59f57be8180750718caca43f230093870af9cc"
+      url "https://github.com/openeverest/openeverest/releases/download/v1.12.0/everestctl-darwin-arm64"
+      sha256 "329d7d429f633e0f4d028cafe279273b4b184254f712568539131c015268b359"
     end
   end
 
   on_linux do
     if Hardware::CPU.intel?
-      url "https://github.com/openeverest/openeverest/releases/download/v1.13.0/everestctl-linux-amd64"
-      sha256 "edd42d88711ba7e66f763f02d72e34b9f765e9253fcf4e4a7ccb85449734a96c"
+      url "https://github.com/openeverest/openeverest/releases/download/v1.12.0/everestctl-linux-amd64"
+      sha256 "83926c0e09cce17f3dfcdf93458f268d22a7d67a39ec6e2d52f382a6dd1699bc"
     elsif Hardware::CPU.arm?
-      url "https://github.com/openeverest/openeverest/releases/download/v1.13.0/everestctl-linux-arm64"
-      sha256 "573bbd6f5394ef96be684c5bd3081481b2e47b91e9551cf545bc333df6986253"
+      url "https://github.com/openeverest/openeverest/releases/download/v1.12.0/everestctl-linux-arm64"
+      sha256 "a42ec0b72b014c4daf5d9ab77c97f36090730b92cd3c922bcf98acc3c4345c9d"
     end
   end
 
