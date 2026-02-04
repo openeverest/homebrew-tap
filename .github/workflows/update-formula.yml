@@ -56,19 +56,19 @@ jobs:
           sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/everestctl.rb
           
           # Update darwin-amd64
-          sed -i "/everestctl-darwin-amd64/s|v[0-9.]*|v${VERSION}|" Formula/everestctl.rb
+          sed -i "/everestctl-darwin-amd64/s|download/v[0-9.]*/|download/v${VERSION}/|" Formula/everestctl.rb
           sed -i "/everestctl-darwin-amd64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_DARWIN_AMD64 }}\"/" Formula/everestctl.rb
           
           # Update darwin-arm64
-          sed -i "/everestctl-darwin-arm64/s|v[0-9.]*|v${VERSION}|" Formula/everestctl.rb
+          sed -i "/everestctl-darwin-arm64/s|download/v[0-9.]*/|download/v${VERSION}/|" Formula/everestctl.rb
           sed -i "/everestctl-darwin-arm64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_DARWIN_ARM64 }}\"/" Formula/everestctl.rb
           
           # Update linux-amd64
-          sed -i "/everestctl-linux-amd64/s|v[0-9.]*|v${VERSION}|" Formula/everestctl.rb
+          sed -i "/everestctl-linux-amd64/s|download/v[0-9.]*/|download/v${VERSION}/|" Formula/everestctl.rb
           sed -i "/everestctl-linux-amd64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_LINUX_AMD64 }}\"/" Formula/everestctl.rb
           
           # Update linux-arm64
-          sed -i "/everestctl-linux-arm64/s|v[0-9.]*|v${VERSION}|" Formula/everestctl.rb
+          sed -i "/everestctl-linux-arm64/s|download/v[0-9.]*/|download/v${VERSION}/|" Formula/everestctl.rb
           sed -i "/everestctl-linux-arm64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_LINUX_ARM64 }}\"/" Formula/everestctl.rb
 
       - name: Commit and push changes
