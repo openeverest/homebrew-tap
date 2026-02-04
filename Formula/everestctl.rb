@@ -46,6 +46,6 @@ class Everestctl < Formula
   end
 
   test do
-    assert_match "everestctl version", shell_output("#{bin}/everestctl --version 2>&1")
+    assert_match "everestctl version", shell_output("#{bin}/everestctl version 2>&1")
   end
 end

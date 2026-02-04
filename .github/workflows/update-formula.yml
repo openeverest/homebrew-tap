@@ -1,0 +1,81 @@
+name: Update Formula
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update to (e.g., 1.14.0)'
+        required: true
+        type: string
+  repository_dispatch:
+    types: [new-release]
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set version
+        id: set-version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.event.client_payload.version }}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Updating to version: $VERSION"
+
+      - name: Download binaries and calculate SHA256
+        id: download
+        run: |
+          VERSION="${{ steps.set-version.outputs.VERSION }}"
+          BASE_URL="https://github.com/openeverest/openeverest/releases/download/v${VERSION}"
+          
+          # Download all binaries
+          for os_arch in darwin-amd64 darwin-arm64 linux-amd64 linux-arm64; do
+            echo "Downloading everestctl-${os_arch}..."
+            curl -sL "${BASE_URL}/everestctl-${os_arch}" -o "everestctl-${os_arch}"
+            
+            # Calculate SHA256
+            sha=$(sha256sum "everestctl-${os_arch}" | awk '{print $1}')
+            echo "SHA256 for ${os_arch}: ${sha}"
+            
+            # Export as environment variable
+            var_name=$(echo "${os_arch}" | tr '-' '_' | tr '[:lower:]' '[:upper:]')
+            echo "SHA_${var_name}=${sha}" >> $GITHUB_OUTPUT
+          done
+
+      - name: Update formula
+        run: |
+          VERSION="${{ steps.set-version.outputs.VERSION }}"
+          
+          # Update version
+          sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/everestctl.rb
+          
+          # Update darwin-amd64
+          sed -i "/everestctl-darwin-amd64/s|v[0-9.]*|v${VERSION}|" Formula/everestctl.rb
+          sed -i "/everestctl-darwin-amd64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_DARWIN_AMD64 }}\"/" Formula/everestctl.rb
+          
+          # Update darwin-arm64
+          sed -i "/everestctl-darwin-arm64/s|v[0-9.]*|v${VERSION}|" Formula/everestctl.rb
+          sed -i "/everestctl-darwin-arm64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_DARWIN_ARM64 }}\"/" Formula/everestctl.rb
+          
+          # Update linux-amd64
+          sed -i "/everestctl-linux-amd64/s|v[0-9.]*|v${VERSION}|" Formula/everestctl.rb
+          sed -i "/everestctl-linux-amd64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_LINUX_AMD64 }}\"/" Formula/everestctl.rb
+          
+          # Update linux-arm64
+          sed -i "/everestctl-linux-arm64/s|v[0-9.]*|v${VERSION}|" Formula/everestctl.rb
+          sed -i "/everestctl-linux-arm64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_LINUX_ARM64 }}\"/" Formula/everestctl.rb
+
+      - name: Commit and push changes
+        run: |
+          VERSION="${{ steps.set-version.outputs.VERSION }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/everestctl.rb
+          git commit -m "Update everestctl to v${VERSION}"
+          git push
