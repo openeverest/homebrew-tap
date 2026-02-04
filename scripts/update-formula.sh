@@ -46,16 +46,16 @@ echo "Updating ${FORMULA_FILE}..."
 sed -i.bak "s/version \".*\"/version \"${VERSION}\"/" "${FORMULA_FILE}"
 
 # Update URLs and SHA256s for each platform
-sed -i.bak "/everestctl-darwin-amd64/s|v[0-9.]*|v${VERSION}|" "${FORMULA_FILE}"
+sed -i.bak "/everestctl-darwin-amd64/s|download/v[0-9.]*/|download/v${VERSION}/|" "${FORMULA_FILE}"
 sed -i.bak "/darwin-amd64\"/,/sha256/s/sha256 \".*\"/sha256 \"${SHAS[darwin-amd64]}\"/" "${FORMULA_FILE}"
 
-sed -i.bak "/everestctl-darwin-arm64/s|v[0-9.]*|v${VERSION}|" "${FORMULA_FILE}"
+sed -i.bak "/everestctl-darwin-arm64/s|download/v[0-9.]*/|download/v${VERSION}/|" "${FORMULA_FILE}"
 sed -i.bak "/darwin-arm64\"/,/sha256/s/sha256 \".*\"/sha256 \"${SHAS[darwin-arm64]}\"/" "${FORMULA_FILE}"
 
-sed -i.bak "/everestctl-linux-amd64/s|v[0-9.]*|v${VERSION}|" "${FORMULA_FILE}"
+sed -i.bak "/everestctl-linux-amd64/s|download/v[0-9.]*/|download/v${VERSION}/|" "${FORMULA_FILE}"
 sed -i.bak "/linux-amd64\"/,/sha256/s/sha256 \".*\"/sha256 \"${SHAS[linux-amd64]}\"/" "${FORMULA_FILE}"
 
-sed -i.bak "/everestctl-linux-arm64/s|v[0-9.]*|v${VERSION}|" "${FORMULA_FILE}"
+sed -i.bak "/everestctl-linux-arm64/s|download/v[0-9.]*/|download/v${VERSION}/|" "${FORMULA_FILE}"
 sed -i.bak "/linux-arm64\"/,/sha256/s/sha256 \".*\"/sha256 \"${SHAS[linux-arm64]}\"/" "${FORMULA_FILE}"
 
 # Remove backup file
