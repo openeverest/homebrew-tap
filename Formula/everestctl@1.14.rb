@@ -1,13 +1,10 @@
-class Everestctl < Formula
+class EverestctlAT114 < Formula
   desc "CLI tool for provisioning and managing OpenEverest on Kubernetes"
   homepage "https://github.com/openeverest/openeverest"
   version "1.14.0"
   license "Apache-2.0"
 
-  livecheck do
-    url :homepage
-    strategy :github_latest
-  end
+  keg_only :versioned_formula
 
   on_macos do
     on_intel do
@@ -35,22 +32,6 @@ class Everestctl < Formula
     os = OS.mac? ? "darwin" : "linux"
     arch = Hardware::CPU.arm? ? "arm64" : "amd64"
     bin.install "everestctl-#{os}-#{arch}" => "everestctl"
-  end
-
-  def caveats
-    <<~EOS
-      To get started with OpenEverest:
-        everestctl install
-
-      For headless installation:
-        everestctl install --namespaces <namespace> \\
-          --operator.mongodb=true \\
-          --operator.postgresql=true \\
-          --operator.mysql=true \\
-          --skip-wizard
-
-      Documentation: https://openeverest.io/documentation/current/
-    EOS
   end
 
   test do
