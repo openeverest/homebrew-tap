@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly health check — catches upstream URL/asset rot.
+    - cron: "0 6 * * 1"
+
+jobs:
+  test-formula:
+    name: brew test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest        # Apple Silicon
+          - macos-13            # Intel
+          - ubuntu-latest       # Linux x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@f1cc9df7a62b7f6244414d21a3ebc3ba9156a082 # main
+
+      - name: brew style
+        run: brew style ./Formula
+
+      - name: Stage formulas in a local tap
+        id: stage
+        run: |
+          brew tap-new openeverest/local --no-git
+          tap_dir="$(brew --repository openeverest/local)/Formula"
+          cp Formula/*.rb "$tap_dir/"
+          echo "tap_dir=$tap_dir" >> "$GITHUB_OUTPUT"
+
+      - name: brew audit
+        # --online verifies URLs resolve. We deliberately omit --new since
+        # these aren't new submissions to homebrew-core.
+        run: |
+          for f in Formula/*.rb; do
+            name=$(basename "$f" .rb)
+            echo "::group::audit openeverest/local/$name"
+            brew audit --strict --online "openeverest/local/$name"
+            echo "::endgroup::"
+          done
+
+      - name: brew install + test
+        run: |
+          for f in Formula/*.rb; do
+            name=$(basename "$f" .rb)
+            echo "::group::install openeverest/local/$name"
+            brew install --verbose "openeverest/local/$name"
+            brew test "openeverest/local/$name"
+            brew uninstall "openeverest/local/$name"
+            echo "::endgroup::"
+          done
