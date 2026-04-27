@@ -4,78 +4,72 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to update to (e.g., 1.14.0)'
+        description: "Version to update to (e.g. 1.14.0). Pre-releases are rejected."
         required: true
         type: string
   repository_dispatch:
     types: [new-release]
 
+permissions:
+  contents: write
+
 jobs:
   update-formula:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set version
-        id: set-version
+      - name: Resolve target version
+        id: version
+        env:
+          DISPATCH_VERSION: ${{ github.event.inputs.version }}
+          PAYLOAD_VERSION: ${{ github.event.client_payload.version }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="$DISPATCH_VERSION"
           else
-            VERSION="${{ github.event.client_payload.version }}"
+            VERSION="$PAYLOAD_VERSION"
           fi
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Updating to version: $VERSION"
+          if [[ -z "$VERSION" ]]; then
+            echo "ERROR: no version supplied." >&2
+            exit 1
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: version '$VERSION' is not a GA semver (X.Y.Z); refusing." >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major_minor=${VERSION%.*}" >> "$GITHUB_OUTPUT"
+          echo "Targeting version: $VERSION"
 
-      - name: Download binaries and calculate SHA256
-        id: download
-        run: |
-          VERSION="${{ steps.set-version.outputs.VERSION }}"
-          BASE_URL="https://github.com/openeverest/openeverest/releases/download/v${VERSION}"
-          
-          # Download all binaries
-          for os_arch in darwin-amd64 darwin-arm64 linux-amd64 linux-arm64; do
-            echo "Downloading everestctl-${os_arch}..."
-            curl -sL "${BASE_URL}/everestctl-${os_arch}" -o "everestctl-${os_arch}"
-            
-            # Calculate SHA256
-            sha=$(sha256sum "everestctl-${os_arch}" | awk '{print $1}')
-            echo "SHA256 for ${os_arch}: ${sha}"
-            
-            # Export as environment variable
-            var_name=$(echo "${os_arch}" | tr '-' '_' | tr '[:lower:]' '[:upper:]')
-            echo "SHA_${var_name}=${sha}" >> $GITHUB_OUTPUT
-          done
+      - name: Run update-formula.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/update-formula.sh "${{ steps.version.outputs.version }}"
 
-      - name: Update formula
-        run: |
-          VERSION="${{ steps.set-version.outputs.VERSION }}"
-          
-          # Update version
-          sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/everestctl.rb
-          
-          # Update darwin-amd64
-          sed -i "/everestctl-darwin-amd64/s|download/v[0-9.]*/|download/v${VERSION}/|" Formula/everestctl.rb
-          sed -i "/everestctl-darwin-amd64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_DARWIN_AMD64 }}\"/" Formula/everestctl.rb
-          
-          # Update darwin-arm64
-          sed -i "/everestctl-darwin-arm64/s|download/v[0-9.]*/|download/v${VERSION}/|" Formula/everestctl.rb
-          sed -i "/everestctl-darwin-arm64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_DARWIN_ARM64 }}\"/" Formula/everestctl.rb
-          
-          # Update linux-amd64
-          sed -i "/everestctl-linux-amd64/s|download/v[0-9.]*/|download/v${VERSION}/|" Formula/everestctl.rb
-          sed -i "/everestctl-linux-amd64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_LINUX_AMD64 }}\"/" Formula/everestctl.rb
-          
-          # Update linux-arm64
-          sed -i "/everestctl-linux-arm64/s|download/v[0-9.]*/|download/v${VERSION}/|" Formula/everestctl.rb
-          sed -i "/everestctl-linux-arm64/,/sha256/s/sha256 \".*\"/sha256 \"${{ steps.download.outputs.SHA_LINUX_ARM64 }}\"/" Formula/everestctl.rb
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@f1cc9df7a62b7f6244414d21a3ebc3ba9156a082 # main
 
-      - name: Commit and push changes
+      - name: brew style
+        run: brew style ./Formula
+
+      - name: brew audit
+        env:
+          MAJOR_MINOR: ${{ steps.version.outputs.major_minor }}
         run: |
-          VERSION="${{ steps.set-version.outputs.VERSION }}"
+          brew tap-new openeverest/local --no-git
+          tap_dir="$(brew --repository openeverest/local)/Formula"
+          cp Formula/everestctl.rb "$tap_dir/"
+          cp "Formula/everestctl@${MAJOR_MINOR}.rb" "$tap_dir/"
+          brew audit --strict --online openeverest/local/everestctl
+          brew audit --strict --online "openeverest/local/everestctl@${MAJOR_MINOR}"
+
+      - name: Commit and push
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/everestctl.rb
-          git commit -m "Update everestctl to v${VERSION}"
+          git add Formula/
+          git diff --cached --quiet && echo "No changes to commit." && exit 0
+          git commit -m "everestctl ${{ steps.version.outputs.version }}"
           git push
